@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -23,6 +23,13 @@ import { navigation } from './navigation';
 import { Button } from './components/ui/button';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from './components/ui/dialog';
 import { Badge } from './components/badge';
+import {
+  OperationalTools,
+  RecordActions,
+  OperationalDialog,
+  type OperationSelection,
+} from './components/operations';
+import { FinancialOverview } from './finance-overview';
 import { Loading, ErrorState, EmptyState } from './components/feedback';
 type Column = {
   key: string;
@@ -251,6 +258,7 @@ function CreateUser({
   );
 }
 export default function Directory({ resource }: { resource: string }) {
+  const [operation, setOperation] = useState<OperationSelection | null>(null);
   const { user } = useAuth();
   const [params] = useSearchParams();
   const initial = params.get('search') ?? '';
@@ -273,6 +281,7 @@ export default function Directory({ resource }: { resource: string }) {
   }, [search]);
   const data = useQuery({
     queryKey: ['directory', resource, user!.id, debounced, page, sort],
+    placeholderData: keepPreviousData,
     queryFn: () =>
       api<PageData>(
         `/${resource}?${new URLSearchParams({ page: String(page), limit: '12', search: debounced, sort })}`,
@@ -318,7 +327,7 @@ export default function Directory({ resource }: { resource: string }) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="eyebrow">
-            {entry.group} · {driver ? 'SUAS ENTREGAS DE HOJE' : 'CONSULTA'}
+            {entry.group} · {driver ? 'SUAS ENTREGAS DE HOJE' : 'GESTÃO OPERACIONAL'}
           </p>
           <h1 className="page-title mt-2">{driver ? 'Seu dia na estrada' : entry.label}</h1>
           <p className="mt-2 text-xs leading-6 text-muted">
@@ -327,7 +336,8 @@ export default function Directory({ resource }: { resource: string }) {
               : descriptions[resource]}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <OperationalTools resource={resource} />
           <Button
             variant="outline"
             disabled={exporting || data.isPending || !!data.error}
@@ -346,6 +356,7 @@ export default function Directory({ resource }: { resource: string }) {
           )}
         </div>
       </div>
+      {resource === 'finance' && <FinancialOverview />}
       <section className="card overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 p-4 dark:border-slate-800 sm:p-5">
           <div className="relative w-full max-w-sm">
@@ -423,6 +434,11 @@ export default function Directory({ resource }: { resource: string }) {
                         {c.label}
                       </th>
                     ))}
+                    {resource !== 'users' && (
+                      <th scope="col" className="px-5 py-3 text-[10px] text-muted">
+                        Operações
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100 dark:divide-slate-800">
@@ -439,6 +455,11 @@ export default function Directory({ resource }: { resource: string }) {
                           <Value row={row} column={c} />
                         </td>
                       ))}
+                      {resource !== 'users' && (
+                        <td className="min-w-[220px] px-5 py-3">
+                          <RecordActions resource={resource} row={row} onSelect={setOperation} />
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -468,6 +489,9 @@ export default function Directory({ resource }: { resource: string }) {
                       </div>
                     ))}
                   </dl>
+                  <div className="mt-4 border-t pt-3">
+                    <RecordActions resource={resource} row={row} onSelect={setOperation} />
+                  </div>
                   {driver && (
                     <Button asChild variant="outline" className="mt-4 w-full">
                       <a
@@ -520,12 +544,7 @@ export default function Directory({ resource }: { resource: string }) {
           </div>
         )}
       </section>
-      {resource !== 'users' && (
-        <p className="text-[10px] leading-5 text-muted">
-          Consulta dos dados de demonstração. Os fluxos de cadastro e operação deste módulo serão
-          implementados nas próximas etapas.
-        </p>
-      )}
+      {operation && <OperationalDialog selection={operation} onClose={() => setOperation(null)} />}
       {resource === 'users' && <CreateUser open={create} onOpenChange={setCreate} />}
     </div>
   );

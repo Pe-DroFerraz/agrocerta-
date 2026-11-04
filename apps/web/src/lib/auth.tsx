@@ -17,7 +17,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         return (await api<{ user: Viewer }>('/auth/me')).user;
       } catch (error) {
-        if (error instanceof ApiError && error.status === 401) return null;
+        if (error instanceof ApiError && error.status === 401) {
+          if (
+            window.location.pathname !== '/login' &&
+            !window.location.pathname.startsWith('/rastreio/')
+          ) {
+            const mode = await api<{ localDemo: boolean }>('/auth/mode');
+            if (mode.localDemo)
+              return (await api<{ user: Viewer }>('/auth/demo', { method: 'POST' })).user;
+          }
+          return null;
+        }
         throw error;
       }
     },

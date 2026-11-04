@@ -11,6 +11,11 @@ import {
   Wallet,
   MessagesSquare,
   ShieldCheck,
+  ScanLine,
+  BarChart3,
+  Settings2,
+  CalendarClock,
+  MessageCircle,
 } from 'lucide-react';
 export const navigation = [
   { path: '/', key: 'dashboard', label: 'Visão geral', icon: LayoutDashboard, group: 'PRINCIPAL' },
@@ -37,6 +42,14 @@ export const navigation = [
     icon: Warehouse,
     group: 'PRODUÇÃO',
   },
+  { path: '/stock', key: 'stock', label: 'Estoque por lote', icon: Warehouse, group: 'PRODUÇÃO' },
+  {
+    path: '/traceability',
+    key: 'traceability',
+    label: 'Rastreabilidade',
+    icon: ScanLine,
+    group: 'PRODUÇÃO',
+  },
   { path: '/customers', key: 'customers', label: 'Clientes', icon: UsersRound, group: 'NEGÓCIO' },
   { path: '/orders', key: 'orders', label: 'Pedidos', icon: ShoppingBag, group: 'NEGÓCIO' },
   {
@@ -46,6 +59,21 @@ export const navigation = [
     icon: Truck,
     group: 'NEGÓCIO',
   },
+  {
+    path: '/recurring',
+    key: 'recurring',
+    label: 'Pedidos fixos',
+    icon: CalendarClock,
+    group: 'NEGÓCIO',
+  },
+  {
+    path: '/whatsapp',
+    key: 'whatsapp',
+    label: 'Central WhatsApp',
+    icon: MessageCircle,
+    group: 'NEGÓCIO',
+  },
+  { path: '/reports', key: 'reports', label: 'Relatórios', icon: BarChart3, group: 'NEGÓCIO' },
   { path: '/finance', key: 'finance', label: 'Contas a receber', icon: Wallet, group: 'NEGÓCIO' },
   {
     path: '/announcements',
@@ -54,6 +82,7 @@ export const navigation = [
     icon: MessagesSquare,
     group: 'EQUIPE',
   },
+  { path: '/settings', key: 'settings', label: 'Configurações', icon: Settings2, group: 'EQUIPE' },
   {
     path: '/users',
     key: 'users',

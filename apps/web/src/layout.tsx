@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as Dropdown from '@radix-ui/react-dropdown-menu';
 import {
@@ -83,6 +83,19 @@ export default function Layout() {
   useEffect(() => {
     setMobile(false);
   }, [location.pathname]);
+  const liveAlerts = useQuery({
+    queryKey: ['live-alerts', user!.id],
+    queryFn: () =>
+      api<{
+        rows: {
+          id: string;
+          title: string;
+          description: string;
+          severity: string;
+          target: string;
+        }[];
+      }>('/alerts'),
+  });
   const notifications = useQuery({
     queryKey: ['notifications', user!.id],
     queryFn: () => api<{ rows: Notification[] }>('/notifications'),
@@ -95,7 +108,18 @@ export default function Layout() {
   const results = useQuery({
     queryKey: ['search', user!.id, query],
     queryFn: async () => {
-      const resources = nav.filter((n) => n.key !== 'dashboard');
+      const resources = nav.filter(
+        (n) =>
+          ![
+            'dashboard',
+            'traceability',
+            'stock',
+            'reports',
+            'settings',
+            'whatsapp',
+            'recurring',
+          ].includes(n.key),
+      );
       const pages = await Promise.all(
         resources.map(async (n) => ({
           nav: n,
@@ -282,7 +306,8 @@ export default function Layout() {
               onClick={() => setAlerts(true)}
             >
               <Bell size={18} />
-              {notifications.data?.rows.some((n) => !n.readAt) && (
+              {(notifications.data?.rows.some((n) => !n.readAt) ||
+                !!liveAlerts.data?.rows.length) && (
                 <span className="absolute right-2.5 top-2 h-1.5 w-1.5 rounded-full bg-primary ring-2 ring-white dark:ring-slate-950" />
               )}
             </Button>
@@ -344,7 +369,7 @@ export default function Layout() {
         </main>
         <footer className="hidden items-center justify-between border-t border-stone-200/60 px-9 py-5 text-[10px] text-muted dark:border-slate-800 lg:flex">
           <span>Agro Certa · Do campo à mesa, com confiança.</span>
-          <span>Demonstração · Etapa 1</span>
+          <span>Demonstração · Operação integrada</span>
         </footer>
       </div>
       <nav
@@ -450,6 +475,21 @@ export default function Layout() {
             Avisos direcionados ao seu usuário.
           </DialogDescription>
           <div className="mt-5 space-y-3">
+            {liveAlerts.error && <p className="text-xs text-red-700">{liveAlerts.error.message}</p>}
+            {liveAlerts.data?.rows.map((alert) => (
+              <Link
+                to={alert.target}
+                key={alert.id}
+                onClick={() => setAlerts(false)}
+                className="block rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/30"
+              >
+                <p className="text-xs font-semibold">{alert.title}</p>
+                <p className="mt-2 text-[11px] leading-5 text-muted">{alert.description}</p>
+                <span className="mt-2 block text-[10px] font-semibold text-primary dark:text-green-300">
+                  Conferir no painel ↗
+                </span>
+              </Link>
+            ))}
             {notifications.isPending ? (
               <p className="text-sm text-muted">Carregando…</p>
             ) : notifications.error ? (
@@ -485,9 +525,7 @@ export default function Layout() {
                 </article>
               ))
             ) : (
-              <p className="py-8 text-center text-sm text-muted">
-                Tudo em dia. Você não tem notificações.
-              </p>
+              <p className="py-8 text-center text-sm text-muted">Sem outros avisos pessoais.</p>
             )}
           </div>
         </DialogContent>

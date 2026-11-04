@@ -34,7 +34,13 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
       window.dispatchEvent(new Event('agro-session-expired'));
     throw new ApiError(
       response.status,
-      body?.error?.message ?? 'Não foi possível conectar ao servidor.',
+      [
+        body?.error?.message ?? 'Não foi possível conectar ao servidor.',
+        ...Object.values(body?.error?.fields ?? {})
+          .flat()
+          .filter((value): value is string => typeof value === 'string')
+          .slice(0, 3),
+      ].join(' '),
     );
   }
   if (response.status === 204) return undefined as T;

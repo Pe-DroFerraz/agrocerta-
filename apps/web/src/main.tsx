@@ -28,6 +28,15 @@ const Login = lazy(() => import('./login'));
 const Layout = lazy(() => import('./layout'));
 const Dashboard = lazy(() => import('./dashboard'));
 const Directory = lazy(() => import('./directory'));
+const Traceability = lazy(() => import('./traceability'));
+const Reports = lazy(() => import('./reports'));
+const Stock = lazy(() => import('./stock'));
+const Settings = lazy(() => import('./settings'));
+const WhatsApp = lazy(() => import('./commercial').then((m) => ({ default: m.WhatsAppPage })));
+const Recurring = lazy(() => import('./commercial').then((m) => ({ default: m.RecurringPage })));
+const PublicTraceability = lazy(() =>
+  import('./traceability').then((m) => ({ default: m.PublicTraceability })),
+);
 const client = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000, refetchOnWindowFocus: false } },
 });
@@ -80,6 +89,7 @@ function App() {
           >
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/rastreio/:code" element={<PublicTraceability />} />
               <Route element={<Protected />}>
                 <Route element={<Layout />}>
                   <Route index element={<Home />} />
@@ -91,7 +101,21 @@ function App() {
                         path={n.path}
                         element={
                           <Permission name={n.key}>
-                            <Directory key={n.key} resource={n.key} />
+                            {n.key === 'traceability' ? (
+                              <Traceability />
+                            ) : n.key === 'stock' ? (
+                              <Stock />
+                            ) : n.key === 'reports' ? (
+                              <Reports />
+                            ) : n.key === 'settings' ? (
+                              <Settings />
+                            ) : n.key === 'whatsapp' ? (
+                              <WhatsApp />
+                            ) : n.key === 'recurring' ? (
+                              <Recurring />
+                            ) : (
+                              <Directory key={n.key} resource={n.key} />
+                            )}
                           </Permission>
                         }
                       />

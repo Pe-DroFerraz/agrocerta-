@@ -86,3 +86,11 @@
     scroll-behavior: auto !important;
   }
 }
+
+p,
+dd,
+h1,
+h2,
+h3 {
+  overflow-wrap: anywhere;
+}

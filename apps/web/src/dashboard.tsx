@@ -34,7 +34,9 @@ import { currency, number, date, statusLabels, cn } from './lib/utils';
 import { Loading, ErrorState, EmptyState } from './components/feedback';
 import { Button } from './components/ui/button';
 import { Badge } from './components/badge';
+import { OperationsLaunch } from './components/operations';
 interface DashboardData {
+  expiryAlertDays: number;
   period: { from: string; to: string };
   kpis: { key: string; label: string; value: number | null; unit: string; change: number | null }[];
   series: { date: string; milk: number; revenue: number }[];
@@ -113,6 +115,7 @@ export default function Dashboard() {
   }).format(now);
   return (
     <div className="space-y-6">
+      <OperationsLaunch />
       <div className="flex flex-wrap items-start justify-between gap-5">
         <div>
           <p className="eyebrow flex items-center gap-1.5">
@@ -515,7 +518,7 @@ export default function Dashboard() {
                 ) : (
                   <EmptyState
                     title="Validades em dia"
-                    description="Nenhum lote liberado com saldo vence nos próximos sete dias."
+                    description={`Nenhum lote liberado com saldo vence nos próximos ${data.data.expiryAlertDays} dias.`}
                   />
                 )
               ) : data.data.deliveries.length ? (
