@@ -334,6 +334,7 @@ export async function dataRoutes(app: FastifyInstance) {
           take: q.limit,
           select: {
             id: true,
+            authorId: true,
             title: true,
             content: true,
             createdAt: true,

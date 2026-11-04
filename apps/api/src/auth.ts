@@ -104,6 +104,51 @@ const errorResponse = {
   },
 } as const;
 export async function authRoutes(app: FastifyInstance) {
+  app.get('/api/auth/mode', async () => ({ localDemo: config.LOCAL_DEMO_ACCESS === '1' }));
+  app.post(
+    '/api/auth/demo',
+    { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      if (
+        config.LOCAL_DEMO_ACCESS !== '1' ||
+        !['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(request.ip)
+      )
+        return reply
+          .code(404)
+          .send({ error: { code: 'NOT_FOUND', message: 'Recurso não encontrado.' } });
+      const user = await db.user.findFirst({
+        where: { email: 'dono@agrocerta.com', active: true, role: { key: 'OWNER' } },
+        include: { role: true },
+      });
+      if (!user)
+        return reply.code(503).send({
+          error: {
+            code: 'DEMO_UNAVAILABLE',
+            message: 'Carregue a demonstração antes de entrar no painel.',
+          },
+        });
+      const refresh = randomBytes(48).toString('hex');
+      const session = await db.$transaction(async (tx) => {
+        const created = await tx.refreshSession.create({
+          data: {
+            userId: user.id,
+            tokenHash: hash(refresh),
+            expiresAt: new Date(Date.now() + 604800000),
+          },
+        });
+        await tx.auditLog.create({
+          data: {
+            actorId: user.id,
+            action: 'LOCAL_DEMO_LOGIN',
+            entity: 'Session',
+            entityId: created.id,
+          },
+        });
+        return created;
+      });
+      return sendSession(app, reply, safeUser(user), session.id, refresh);
+    },
+  );
   app.post(
     '/api/auth/login',
     {

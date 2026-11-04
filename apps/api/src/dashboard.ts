@@ -27,6 +27,7 @@ export async function dashboardRoutes(app: FastifyInstance) {
     async (request) => {
       const { start, end } = dateRange(periodSchema.parse(request.query));
       const previousStart = new Date(+start - (+end - +start));
+      const company = await db.company.findFirstOrThrow({ select: { expiryAlertDays: true } });
       const role = request.viewer.role;
       const financial = role === 'OWNER';
       const production = role !== 'SALES';
@@ -232,7 +233,10 @@ export async function dashboardRoutes(app: FastifyInstance) {
         production
           ? db.batch.findMany({
               where: {
-                expiresAt: { gte: today.start, lte: new Date(+today.start + 7 * 86400000) },
+                expiresAt: {
+                  gte: today.start,
+                  lte: new Date(+today.start + company.expiryAlertDays * 86400000),
+                },
                 status: 'RELEASED',
                 availableQuantity: { gt: 0 },
               },
@@ -273,6 +277,7 @@ export async function dashboardRoutes(app: FastifyInstance) {
           : Promise.resolve([]),
       ]);
       return {
+        expiryAlertDays: company.expiryAlertDays,
         period: {
           from: localDay(start),
           to: localDay(new Date(+end - 1)),

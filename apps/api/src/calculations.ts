@@ -52,3 +52,24 @@ export function yieldRatio(liters: number, quantity: number, expected: number) {
     status: actual > expected * 1.1 ? 'warning' : 'normal',
   };
 }
+
+export function orderTotal(
+  items: { quantity: Decimal.Value; unitPrice: Decimal.Value; discount?: Decimal.Value }[],
+) {
+  return items.reduce((sum, item) => {
+    const quantity = D(item.quantity);
+    const price = D(item.unitPrice);
+    const discount = D(item.discount ?? 0);
+    if (
+      !quantity.isFinite() ||
+      !price.isFinite() ||
+      !discount.isFinite() ||
+      quantity.lte(0) ||
+      price.lt(0) ||
+      discount.lt(0) ||
+      discount.gt(quantity.mul(price))
+    )
+      throw new Error('Item de pedido inválido.');
+    return sum.plus(quantity.mul(price).minus(discount).toDecimalPlaces(2));
+  }, D(0));
+}

@@ -13,9 +13,26 @@ import { db } from './db.js';
 import { authRoutes } from './auth.js';
 import { dashboardRoutes } from './dashboard.js';
 import { dataRoutes } from './routes.js';
+import { operationalRoutes } from './operations.js';
+import { traceRoutes } from './traceability.js';
+import { reportRoutes } from './reports.js';
+import { companionRoutes } from './companions.js';
+import { webhookRoutes } from './whatsapp-webhook.js';
+import { printRoutes } from './printouts.js';
+import { alertRoutes } from './alerts.js';
 export async function buildApp(options: { logger?: boolean } = {}) {
   const app = Fastify({
-    logger: options.logger ?? false,
+    logger: options.logger
+      ? {
+          serializers: {
+            req: (r: { method?: string; url?: string }) => ({
+              method: r.method,
+              url: r.url?.split('?')[0],
+            }),
+          },
+          redact: ['req.headers.cookie', 'req.headers.authorization'],
+        }
+      : false,
     bodyLimit: 32768,
     ajv: { customOptions: { removeAdditional: false } },
   });
@@ -23,7 +40,7 @@ export async function buildApp(options: { logger?: boolean } = {}) {
   await app.register(cors, {
     origin: config.WEB_ORIGIN,
     credentials: true,
-    methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
   await app.register(cookie);
   await app.register(jwt, {
@@ -47,7 +64,10 @@ export async function buildApp(options: { logger?: boolean } = {}) {
   });
   await docsRoutes(app);
   app.addHook('onRequest', async (request, reply) => {
-    if (['POST', 'PATCH', 'PUT', 'DELETE'].includes(request.method)) {
+    if (
+      request.routeOptions.url !== '/api/whatsapp/webhook' &&
+      ['POST', 'PATCH', 'PUT', 'DELETE'].includes(request.method)
+    ) {
       if (request.headers.origin !== config.WEB_ORIGIN)
         return reply.code(403).send({
           error: { code: 'ORIGIN_REJECTED', message: 'Origem da requisição não autorizada.' },
@@ -63,12 +83,16 @@ export async function buildApp(options: { logger?: boolean } = {}) {
           fields: error instanceof ZodError ? error.flatten().fieldErrors : undefined,
         },
       });
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025')
+      return reply
+        .code(404)
+        .send({ error: { code: 'NOT_FOUND', message: 'Registro não encontrado.' } });
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
       return reply
         .code(409)
         .send({ error: { code: 'CONFLICT', message: 'Já existe um registro com estes dados.' } });
     const status =
-      error.statusCode && error.statusCode >= 400 && error.statusCode < 500
+      error.statusCode && error.statusCode >= 400 && error.statusCode < 600
         ? error.statusCode
         : 500;
     if (status === 500) request.log.error({ err: error }, 'Erro interno');
@@ -94,5 +118,12 @@ export async function buildApp(options: { logger?: boolean } = {}) {
   await authRoutes(app);
   await dashboardRoutes(app);
   await dataRoutes(app);
+  await operationalRoutes(app);
+  await traceRoutes(app);
+  await reportRoutes(app);
+  await companionRoutes(app);
+  await webhookRoutes(app);
+  await printRoutes(app);
+  await alertRoutes(app);
   return app;
 }
