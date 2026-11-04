@@ -1,0 +1,43 @@
+{
+  "name": "agro-certa",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=20 <21"
+  },
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "dev": "concurrently -k -n api,web -c green,cyan \"npm run dev -w @agrocerta/api\" \"npm run dev -w @agrocerta/web\"",
+    "db:up": "docker compose up -d --wait db",
+    "db:down": "docker compose down",
+    "db:migrate": "npm run db:migrate -w @agrocerta/api",
+    "db:generate": "npm run db:generate -w @agrocerta/api",
+    "seed": "npm run seed -w @agrocerta/api",
+    "reset": "node scripts/reset.mjs",
+    "build": "npm run build --workspaces",
+    "typecheck": "npm run typecheck --workspaces",
+    "lint": "eslint .",
+    "test": "npm run test -w @agrocerta/api",
+    "test:e2e": "playwright test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test:unit": "npm run test:unit -w @agrocerta/api",
+    "test:public": "npm exec -w @agrocerta/api -- vitest run test/public-api.test.ts"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "eslint": "^9.22.0",
+    "@eslint/js": "^9.22.0",
+    "typescript-eslint": "^8.26.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^16.0.0",
+    "@playwright/test": "^1.51.1",
+    "prettier": "^3.5.3"
+  },
+  "overrides": {
+    "light-my-request": "6.6.0"
+  }
+}

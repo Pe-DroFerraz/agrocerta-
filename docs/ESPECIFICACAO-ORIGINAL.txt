@@ -1,0 +1,182 @@
+Você é um engenheiro de software sênior full-stack e designer de produto. Construa do zero, de ponta a ponta, o sistema "AGRO CERTA": um painel de gestão para laticínios, queijarias e pequenos produtores rurais de Minas Gerais. Entregue o projeto COMPLETO, funcionando, com backend, banco de dados e dados de demonstração já carregados. Não deixe placeholders, TODOs, telas vazias, botões sem ação nem dados fixos "de mentira" no front: tudo deve ler e gravar no backend de verdade. Quando houver dúvida, tome a melhor decisão sozinho e registre no README. Não me faça perguntas.
+
+==================================================
+1) OBJETIVO DO PRODUTO
+==================================================
+Substituir cadernos e planilhas de uma pequena indústria de laticínios. O dono precisa, em poucos cliques, saber: quanto leite entrou, o que foi produzido, o que está em estoque, o que precisa ser entregue hoje, quanto custa produzir cada litro/kg e qual a margem real. Também precisa rastrear qualquer lote do produtor de origem até o cliente final (e o caminho inverso, em caso de recall).
+
+Usuários: dono/gestor, responsável de produção, comercial/atendimento, entregador.
+
+==================================================
+2) STACK (use exatamente esta)
+==================================================
+- Monorepo com /apps/web e /apps/api, scripts na raiz.
+- Front: React 18 + Vite + TypeScript + Tailwind CSS + shadcn/ui + Recharts + React Router + TanStack Query + React Hook Form + Zod + lucide-react.
+- Back: Node 20 + Fastify + TypeScript + Prisma ORM + Zod para validação.
+- Banco: SQLite por padrão (arquivo local, zero configuração). Schema Prisma compatível com PostgreSQL: trocar apenas o provider e a DATABASE_URL. Documente como migrar para Postgres/Supabase.
+- Auth: login com e-mail e senha (bcrypt), JWT em cookie httpOnly, refresh, controle de permissões por papel (RBAC) aplicado no backend E escondendo itens no front.
+- Documentação da API: Swagger/OpenAPI em /docs.
+- Testes: Vitest nos cálculos críticos (custo, rendimento, rastreabilidade) e testes de integração das rotas principais.
+- Um único comando para tudo: `npm run setup` (instala, migra, popula o banco) e `npm run dev` (sobe API e web juntos). O sistema deve abrir já com dados e login de demonstração.
+
+==================================================
+3) IDENTIDADE VISUAL E UX (prioridade máxima: bonito e intuitivo)
+==================================================
+- Estilo: moderno, limpo, premium, com cara de "campo + tecnologia". Muito espaço em branco, cantos arredondados (12–16px), sombras suaves, sem poluição.
+- Paleta: verde-folha (#2F7D4F primário), verde-escuro (#14532D), creme (#FAF7F0 fundo), dourado-queijo (#E9B949 destaque), terra (#8B5E3C secundário), vermelho/âmbar/verde para status. Modo claro e modo escuro com alternância salva.
+- Tipografia: "Plus Jakarta Sans" (títulos) + "Inter" (texto). Números com fonte tabular.
+- Layout: sidebar fixa recolhível com ícones, topbar com busca global (atalho Ctrl+K / paleta de comandos), sino de alertas, troca de tema e menu do usuário. No celular, vira menu inferior e as tabelas viram cards.
+- Logo simples da Agro Certa (SVG próprio: folha + gota de leite) e favicon.
+- Componentes: cards de KPI com variação percentual e mini-gráfico, tabelas com busca, filtros, ordenação, paginação e exportar CSV, modais/drawers para criar e editar, badges de status coloridos, skeleton loading, estados vazios ilustrados com botão de ação, toasts de sucesso/erro, confirmação antes de excluir, validação de formulário em tempo real com mensagens claras em português.
+- Microinterações discretas (transições de 150–200ms), foco visível, contraste AA, navegação por teclado.
+- Tudo em português do Brasil: datas dd/mm/aaaa, moeda R$ 1.234,56, litros e kg com separador brasileiro, fuso America/Sao_Paulo.
+- Onboarding: no primeiro acesso, um tour rápido de 4 passos explicando o painel.
+
+==================================================
+4) MÓDULOS E FUNCIONALIDADES (todos completos, com CRUD quando aplicável)
+==================================================
+
+4.1 DASHBOARD (tela inicial do dono)
+- KPIs do período (filtro: hoje, 7 dias, 30 dias, mês, personalizado): leite recebido (L), produção total (kg), faturamento, margem bruta (%), custo médio por litro, custo médio por kg, pedidos em aberto, entregas do dia.
+- Gráficos: recebimento de leite por dia; produção por produto; faturamento x custo por semana; margem por produto; ranking dos 5 melhores clientes; ranking dos produtores por volume e qualidade.
+- Blocos de ação: "Entregas de hoje", "Pedidos aguardando confirmação", "Lotes perto do vencimento", "Estoque abaixo do mínimo", "Contas a receber vencidas".
+- Alertas inteligentes no sino (estoque crítico, lote vencendo em até 7 dias, pedido atrasado, queda de rendimento de um produto acima de 10% da média).
+
+4.2 PRODUTORES / FORNECEDORES DE LEITE
+- Cadastro: nome, propriedade, município, telefone/WhatsApp, CPF/CNPJ, preço por litro combinado, bônus por qualidade, status.
+- Recebimento de leite: data, produtor, litros, temperatura, acidez (°D), gordura (%), proteína (%), CCS, aprovado/reprovado (reprovado não entra na produção), responsável.
+- Painel do produtor: histórico de volumes, qualidade média, gráfico de evolução, valor a pagar no mês e fechamento mensal (gera extrato imprimível/PDF).
+
+4.3 PRODUTOS E RECEITAS
+- Cadastro de produtos: queijo minas frescal, queijo minas padrão, meia cura, queijo do Serro/Canastra, muçarela, requeijão, doce de leite, iogurte, manteiga, leite pasteurizado, ricota. Campos: código, unidade (kg/L/un), preço de venda, validade padrão em dias, estoque mínimo, categoria, foto opcional.
+- Ficha técnica/receita por produto: litros de leite por kg (rendimento esperado) e insumos (coalho, sal, fermento, embalagem, etc.) com quantidades. A receita alimenta o cálculo de custo.
+
+4.4 PRODUÇÃO E LOTES
+- Ordem de produção: produto, data, litros de leite usados (com origem por produtor), insumos consumidos (baixa automática de estoque), quantidade produzida, perdas, responsável, observações.
+- Geração automática de código de lote (ex.: QMF-20261104-01), data de fabricação e validade calculada.
+- Rendimento real x esperado (L/kg) com semáforo e histórico.
+- Status do lote: em produção, maturação, liberado, bloqueado, vencido, esgotado. Lote bloqueado não pode ser vendido nem entregue.
+- Etiqueta do lote imprimível com QR Code que abre a página pública de rastreabilidade.
+
+4.5 RASTREABILIDADE (diferencial)
+- Busca por lote, produtor, cliente ou data.
+- Rastreio para frente e para trás: dado um lote, mostrar produtores que forneceram o leite (com litros e qualidade), insumos usados, responsável, datas, e TODOS os clientes/entregas que receberam esse lote. Dado um produtor ou um lote de insumo, listar todos os lotes impactados.
+- Linha do tempo visual do lote (recebimento → produção → maturação → estoque → pedido → entrega).
+- Botão "Simular recall": bloqueia o lote, lista clientes afetados e gera mensagem pronta de aviso por WhatsApp para cada um.
+- Página pública /rastreio/:codigo (sem login) com visual bonito para o consumidor final ver origem, data e selo da empresa.
+- Exportar relatório de rastreabilidade em PDF (útil para fiscalização/SIF/SISBI/IMA).
+
+4.6 ESTOQUE
+- Produtos acabados por lote (FIFO/PVPS por validade) e insumos/embalagens.
+- Movimentações automáticas (produção, venda, perda, ajuste manual com motivo) e extrato por item.
+- Estoque mínimo, alerta de ruptura, alerta de vencimento, inventário com ajuste.
+- Registro de perdas/descartes com motivo e custo da perda.
+
+4.7 CLIENTES (mercados, padarias, restaurantes, empórios, consumidores fixos)
+- Cadastro: nome, tipo, CNPJ/CPF, endereço, bairro/cidade, contato, WhatsApp, rota padrão, prazo de pagamento, tabela de preço própria por produto, limite de crédito, observações.
+- Perfil do cliente: histórico de pedidos, ticket médio, frequência, produtos favoritos, saldo em aberto, gráfico de compras, status (ativo/inativo/inadimplente) e aviso de "cliente sumiu há X dias".
+
+4.7 PEDIDOS (inclui pedidos fixos pelo WhatsApp)
+- Pedido avulso: cliente, itens (produto, quantidade, preço da tabela do cliente com desconto opcional), data de entrega, forma de pagamento, observações. Reserva estoque de lotes liberados mais antigos primeiro.
+- PEDIDOS FIXOS/RECORRENTES: cliente escolhe dias da semana e itens; o sistema gera automaticamente os pedidos de cada semana (job agendado) e permite pular, ajustar ou pausar uma ocorrência.
+- Central WhatsApp (integração preparada e funcional em modo demonstração):
+  - Caixa de entrada simulada com conversas por cliente, onde o atendente cola/recebe a mensagem e o sistema sugere o pedido (parser simples de texto: "10 kg de minas frescal e 5 requeijão") para confirmar em 1 clique.
+  - Botões "Enviar pelo WhatsApp" que abrem wa.me com mensagem pronta (confirmação de pedido, saiu para entrega, cobrança, aviso de lote).
+  - Modelos de mensagem editáveis com variáveis ({cliente}, {itens}, {total}, {data}).
+  - Endpoint de webhook /api/whatsapp/webhook e variáveis de ambiente prontos para plugar a WhatsApp Cloud API oficial depois, com instruções no README.
+- Status do pedido: novo, confirmado, em separação, pronto, em rota, entregue, cancelado. Histórico de mudanças de status.
+- Visão em kanban (arrastar entre colunas) e em lista.
+
+4.8 ENTREGAS E ROTAS
+- Planejamento por data: agrupar pedidos por rota/motorista/veículo, ordenar paradas, capacidade do veículo.
+- Tela do entregador otimizada para celular: lista de paradas do dia, botão de navegação (link para Google Maps), marcar como entregue, registrar ocorrência (cliente ausente, devolução parcial) e assinatura/foto simples do comprovante.
+- Romaneio e canhoto imprimíveis (PDF).
+- Painel de entregas: no prazo, atrasadas, concluídas, taxa de sucesso, ocorrências.
+
+4.9 FINANCEIRO E CUSTOS (painel de custo por litro/kg)
+- Contas a receber (geradas pelos pedidos entregues, com baixa total/parcial, vencimento, forma de pagamento) e contas a pagar (produtores, insumos, frete, energia, folha, outros).
+- Custos fixos mensais cadastráveis (energia, água, mão de obra, combustível, manutenção, embalagem geral, impostos).
+- CÁLCULO DE CUSTO (regra obrigatória, com testes):
+  custo do leite = soma(litros × preço/L de cada produtor do lote)
+  custo de insumos = soma(qtd × custo unitário)
+  rateio de custos indiretos = custos fixos do mês proporcionais aos kg produzidos
+  custo total do lote = leite + insumos + rateio + perdas
+  custo por kg (ou unidade) = custo total ÷ quantidade produzida
+  custo por litro de leite processado = custo total ÷ litros usados
+  margem = (preço médio de venda − custo por kg) ÷ preço médio de venda
+- Painel: custo por litro e por kg por produto/mês, composição do custo (leite, insumos, indiretos, perdas) em gráfico, comparação entre lotes, produto mais e menos lucrativo, ponto de equilíbrio e simulador ("e se o preço do leite subir R$ 0,20?").
+- Fluxo de caixa simples (entradas x saídas) e DRE resumida do mês.
+
+4.10 MURAL DE AVISOS
+- Mural interno (avisos para equipe) e disparo por WhatsApp para grupos de clientes (ex.: "novo lote de meia cura disponível", "promoção da semana"), com seleção de segmento, prévia da mensagem e histórico de envios.
+
+4.11 RELATÓRIOS
+- Vendas por período/cliente/produto, produção, rendimento, perdas, estoque valorizado, inadimplência, recebimento por produtor. Filtros, gráfico + tabela, exportar CSV e PDF.
+
+4.12 CONFIGURAÇÕES E ADMIN
+- Dados da empresa (nome Agro Certa, CNPJ, endereço, logo), usuários e papéis, unidades e categorias, modelos de mensagem, parâmetros (dias de alerta de validade, limites de qualidade do leite), backup/exportação dos dados, log de auditoria (quem fez o quê e quando).
+
+Permissões:
+- Dono: tudo.
+- Produção: produtores, recebimento, produtos, produção, lotes, rastreabilidade, estoque.
+- Comercial: clientes, pedidos, WhatsApp, mural, entregas (leitura).
+- Entregador: apenas tela de entregas do dia.
+
+==================================================
+5) MODELO DE DADOS (mínimo; adapte se necessário e documente)
+==================================================
+User, Role, Company, Producer, MilkReceipt, Product, RecipeItem, Supply (insumo), SupplyPurchase, ProductionOrder, ProductionMilkSource (liga lote x recebimento/produtor), ProductionSupplyUse, Batch, StockMovement, Customer, CustomerPrice, Order, OrderItem (com batchId), RecurringOrder, RecurringOrderItem, Route, Vehicle, Delivery, DeliveryEvent, Receivable, Payable, FixedCost, LossRecord, Announcement, MessageTemplate, WhatsAppMessage, Notification, AuditLog.
+Use índices nas chaves de busca (código do lote, cliente, data), chaves estrangeiras, exclusão lógica onde fizer sentido e transações nas operações que mexem em estoque, lote e financeiro ao mesmo tempo.
+
+==================================================
+6) DADOS DE DEMONSTRAÇÃO (seed realista, obrigatório)
+==================================================
+Gere um seed determinístico cobrindo os últimos 90 dias até hoje:
+- Empresa Agro Certa, cidade em Minas Gerais.
+- 4 usuários (um por papel). Credenciais de demo no README e exibidas discretamente na tela de login: dono@agrocerta.com / agro123 (e os demais).
+- 10 produtores com municípios mineiros reais, preços por litro entre R$ 2,10 e R$ 2,60 e qualidade variada (um deles com problemas recorrentes).
+- ~900 recebimentos de leite coerentes (volumes diários, sazonalidade leve, alguns reprovados).
+- 11 produtos com receitas e rendimentos realistas (ex.: ~10 L/kg minas frescal, ~13 L/kg meia cura, ~8 L/kg requeijão).
+- ~25 insumos com compras e estoque.
+- ~120 lotes de produção com origem por produtor, rendimento real variando, alguns em maturação, 2 bloqueados, alguns próximos do vencimento.
+- 35 clientes (mercados, padarias, restaurantes, empórios) com tabelas de preço, 8 deles com pedidos fixos semanais.
+- ~600 pedidos com entregas, status variados, pagamentos em dia e alguns vencidos.
+- 3 rotas, 3 veículos, 3 entregadores.
+- Custos fixos mensais, contas a pagar e a receber, perdas registradas.
+- Mensagens de WhatsApp de exemplo, avisos no mural, notificações.
+Os números do dashboard devem fechar entre si (o que foi vendido sai do estoque, o que foi entregue gera recebível, etc.). Inclua `npm run seed` e `npm run reset` (apaga e recria).
+
+==================================================
+7) QUALIDADE E REGRAS TÉCNICAS
+==================================================
+- TypeScript estrito, sem `any` desnecessário; validação Zod em toda entrada da API; erros padronizados com mensagens em português.
+- Paginação, filtros e ordenação no servidor; evitar N+1.
+- Segurança: hash de senha, rate limit no login, CORS restrito, sanitização, RBAC no backend, variáveis sensíveis em .env (entregue .env.example).
+- Performance: carregamento inicial rápido, lazy loading de rotas, cache com TanStack Query.
+- Acessibilidade e responsividade testadas em 360px, 768px e 1280px+.
+- Jobs agendados (node-cron): gerar pedidos fixos, alertas de validade/estoque, marcar atrasos.
+- Geração de PDF no backend (pdfkit ou equivalente) para romaneio, etiqueta, extrato do produtor e relatório de rastreabilidade.
+- Dockerfile e docker-compose opcionais para subir tudo.
+- README completo em português: visão geral, prints/descrição das telas, como rodar, credenciais demo, estrutura de pastas, regras de cálculo, como trocar para Postgres/Supabase, como ativar a WhatsApp Cloud API e como fazer deploy (front na Vercel/Netlify, API no Railway/Render).
+
+==================================================
+8) COMO TRABALHAR E ENTREGAR
+==================================================
+1. Primeiro escreva um plano curto (arquitetura, pastas, ordem de construção).
+2. Construa na ordem: banco + seed → API + auth → layout e design system → dashboard → produtores/recebimento → produtos/receitas → produção/lotes → rastreabilidade → estoque → clientes → pedidos/WhatsApp → entregas → financeiro/custos → mural → relatórios → configurações.
+3. Rode o projeto, os testes e o lint; corrija tudo até passar. Verifique manualmente os fluxos principais.
+4. Entregue o código completo, arquivo por arquivo, sem trechos omitidos ("// resto do código aqui" é proibido).
+
+CRITÉRIOS DE ACEITE (confira um por um no final e diga o resultado):
+[ ] `npm run setup && npm run dev` abre o sistema com login e dados já carregados.
+[ ] Dashboard mostra KPIs e gráficos reais vindos da API, com filtros de período funcionando.
+[ ] Registrar um recebimento de leite, criar uma produção e ver o lote, o estoque e o custo por kg atualizados.
+[ ] Criar um pedido, entregar e ver o recebível e a baixa de estoque do lote correto (FIFO).
+[ ] Rastrear um lote para frente (clientes) e para trás (produtores), simular recall e abrir a página pública via QR.
+[ ] Pedido fixo gera os pedidos da semana automaticamente.
+[ ] Painel de custo por litro/kg e simulador de preço do leite funcionando e batendo com os testes.
+[ ] Permissões por papel funcionando no backend e no front.
+[ ] Visual consistente, bonito, responsivo, com modo escuro e sem telas quebradas.
+[ ] README completo e `npm test` passando.
+
+Comece agora pelo plano e siga até a entrega final completa.

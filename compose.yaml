@@ -1,0 +1,18 @@
+services:
+  db:
+    image: postgres:16.8-alpine
+    environment:
+      POSTGRES_USER: agrocerta
+      POSTGRES_PASSWORD: agrocerta_local
+      POSTGRES_DB: agrocerta
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U agrocerta -d agrocerta']
+      interval: 2s
+      timeout: 5s
+      retries: 30
+volumes:
+  postgres_data:
