@@ -2,6 +2,10 @@
 
 Painel operacional para laticínios e queijarias, com origem do leite, produção, lotes, estoque, pedidos, entregas e financeiro em PostgreSQL. A [especificação integral](docs/ESPECIFICACAO-ORIGINAL.txt) e a [prioridade operacional](docs/PRIORIDADE-OPERACIONAL.md) estão preservadas. Esta entrega implementa e testa o núcleo operacional; os complementos pendentes estão no [roadmap](docs/ROADMAP.md).
 
+## Prévia privada no navegador
+
+Para testar sem instalar no computador, use o [guia de GitHub Codespaces com porta 5173 privada](docs/PREVIA-PRIVADA.md). O devcontainer prepara o mesmo PostgreSQL, seed, API e painel; API e banco não têm portas públicas. Não há implantação em produção.
+
 ## Executar
 
 Pré-requisitos: Node **20.20.0**, npm e Docker Compose v2. Na raiz:

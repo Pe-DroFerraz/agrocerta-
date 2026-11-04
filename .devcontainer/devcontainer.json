@@ -1,0 +1,27 @@
+{
+  "name": "AGRO CERTA — demonstração privada",
+  "dockerComposeFile": "compose.yaml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/agrocerta-",
+  "remoteUser": "node",
+  "shutdownAction": "stopCompose",
+  "forwardPorts": [5173],
+  "portsAttributes": {
+    "5173": {
+      "label": "AGRO CERTA — painel (manter Private)",
+      "onAutoForward": "notify",
+      "protocol": "http"
+    },
+    "3333": { "onAutoForward": "ignore" },
+    "5432": { "onAutoForward": "ignore" }
+  },
+  "otherPortsAttributes": { "onAutoForward": "ignore" },
+  "postCreateCommand": "node .devcontainer/setup.mjs",
+  "postStartCommand": "node .devcontainer/start.mjs",
+  "customizations": {
+    "vscode": {
+      "settings": { "remote.autoForwardPorts": false },
+      "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]
+    }
+  }
+}

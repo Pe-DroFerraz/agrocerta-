@@ -1,0 +1,24 @@
+services:
+  app:
+    image: mcr.microsoft.com/devcontainers/typescript-node:1-20-bookworm
+    command: sleep infinity
+    volumes:
+      - ..:/workspaces/agrocerta-:cached
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    image: postgres:16.8-alpine
+    environment:
+      POSTGRES_USER: agrocerta
+      POSTGRES_PASSWORD: agrocerta_local
+      POSTGRES_DB: agrocerta
+    volumes:
+      - codespaces_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U agrocerta -d agrocerta']
+      interval: 2s
+      timeout: 5s
+      retries: 30
+volumes:
+  codespaces_postgres:
