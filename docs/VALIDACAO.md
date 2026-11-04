@@ -41,3 +41,11 @@ CHROMIUM_PATH=/usr/bin/chromium npm run test:e2e
 ```
 
 Os testes de navegador modificam a demonstração com registros identificados. Executar somente em dados de desenvolvimento. `TEST_DATABASE_URL` separa o banco dos testes de API; o navegador usa a configuração normal da API de desenvolvimento.
+
+## Prévia privada e Codespaces
+
+A configuração de desenvolvimento e as instruções estão em [PREVIA-PRIVADA.md](PREVIA-PRIVADA.md). Foram revalidados PostgreSQL, migrações e seed existente, proxy Vite com host/origem HTTPS de Codespaces simulados via loopback, login/cookies e consultas autenticadas de 19 endpoints. Host/Origin desconhecidos foram recusados; nenhum serviço foi exposto publicamente. A configuração Compose não publica portas e encaminha apenas 5173 pelo devcontainer.
+
+A primeira rodada desta validação encontrou uma espera de carregamento de módulo e uma notificação que interceptava o menu da conta no celular. A sobreposição foi corrigida com reposicionamento e botão de fechar; o Playwright passou a usar limites adequados à inicialização em desenvolvimento. A rodada final completa passou: **14 cenários aprovados, sete repetições dispensadas, nenhuma falha**, incluindo login/logout e navegação no celular. Typecheck, lint, formato e build também passaram.
+
+O Codespace real e sua URL privada não foram criados nesta sessão. O proxy Codex bloqueou a verificação adicional da imagem MCR com HTTP 403. A validação local não comprova autenticação/visibilidade no gateway GitHub; o guia exige conferir 5173 = Private antes de abrir a prévia. Não houve implantação de produção.

@@ -136,7 +136,13 @@ function App() {
               </Route>
             </Routes>
           </Suspense>
-          <Toaster richColors position="top-right" />
+          <Toaster
+            richColors
+            closeButton
+            position="bottom-right"
+            offset={{ bottom: 88, right: 16 }}
+            mobileOffset={{ bottom: 88, right: 16, left: 16 }}
+          />
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
