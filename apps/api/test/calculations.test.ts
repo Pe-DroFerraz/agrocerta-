@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateCost, yieldRatio } from '../src/calculations.js';
+import { calculateCost, yieldRatio, orderTotal } from '../src/calculations.js';
 const example = {
   milk: [
     { liters: 600, price: '2.30' },
@@ -72,4 +72,14 @@ describe('Rendimento', () => {
     expect(() => yieldRatio(1000, 0, 10)).toThrow();
     expect(() => yieldRatio(-1, 100, 10)).toThrow();
   });
+});
+
+it('arredonda cada linha antes de somar o total da venda', () => {
+  expect(
+    orderTotal([
+      { quantity: '0.001', unitPrice: 5 },
+      { quantity: '0.001', unitPrice: 5 },
+    ]).toString(),
+  ).toBe('0.02');
+  expect(() => orderTotal([{ quantity: 1, unitPrice: 10, discount: 11 }])).toThrow();
 });

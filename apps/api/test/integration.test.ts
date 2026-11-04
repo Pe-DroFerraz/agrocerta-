@@ -12,6 +12,7 @@ const url = new URL(process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL!);
 url.searchParams.set('schema', schema);
 process.env.DATABASE_URL = url.toString();
 process.env.NODE_ENV = 'test';
+process.env.LOCAL_DEMO_ACCESS = '0';
 process.env.JWT_SECRET ??= randomBytes(48).toString('hex');
 let app: FastifyInstance;
 let db: PrismaClient;

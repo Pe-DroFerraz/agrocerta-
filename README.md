@@ -1,192 +1,86 @@
 # AGRO CERTA
 
-Gestão para laticínios, queijarias e pequenos produtores de Minas Gerais. Do campo à mesa, com origem, controle e clareza.
+Painel operacional para laticínios e queijarias, com origem do leite, produção, lotes, estoque, pedidos, entregas e financeiro em PostgreSQL. A [especificação integral](docs/ESPECIFICACAO-ORIGINAL.txt) e a [prioridade operacional](docs/PRIORIDADE-OPERACIONAL.md) estão preservadas. Esta entrega implementa e testa o núcleo operacional; os complementos pendentes estão no [roadmap](docs/ROADMAP.md).
 
-Este commit entrega **a base da primeira etapa**, não todos os módulos do produto. A [especificação integral](docs/ESPECIFICACAO-ORIGINAL.txt) foi preservada, e o [mapa de evolução](docs/ROADMAP.md) registra os fluxos que ainda serão construídos.
+## Executar
 
-## Estado da entrega
-
-Há código para monorepo, banco relacional, seed, autenticação, permissões, painel, consultas e layout administrativo. **A validação integrada da etapa ainda está bloqueada** no ambiente desta tarefa: o proxy retorna HTTP 403 para `binaries.prisma.sh`, necessário para os engines oficiais do Prisma.
-
-O domínio já foi acrescentado ao rascunho das configurações do ambiente. É necessário salvar a liberação nas configurações; publicar o ambiente é uma ação posterior. Não foi desativada nenhuma verificação de TLS ou checksum. Depois da liberação, executar `npm run setup`, `npm test` e os testes de navegador autenticados. Até isso passar, **não considerar login com senha, seed e painel autenticado como funcionalidades validadas**.
-
-## Stack e decisões
-
-- Node **20.20.0**, npm workspaces, TypeScript estrito.
-- API: Fastify 5, Prisma 6, Zod 4, bcrypt, JWT e Swagger/OpenAPI local.
-- Web: React **18**, Vite 6, Tailwind 3, componentes no padrão shadcn/ui com Radix UI, React Router, TanStack Query, React Hook Form, Zod, Recharts e lucide-react.
-- **PostgreSQL 16** é o banco padrão, conforme o pedido mais recente e o README inicial. Isso substitui a opção SQLite do documento original. As migrações deste projeto são PostgreSQL; não basta mudar a URL para usar SQLite.
-- Aplicação de uma única empresa. Multiempresa não faz parte desta etapa.
-- Valores monetários em `Decimal`; quantidades com precisão de até cinco casas conforme o uso. Datas e períodos do painel em `America/Sao_Paulo`.
-- Fontes Inter e Plus Jakarta Sans empacotadas localmente; a interface não depende de Google Fonts/CDN.
-- Swagger usa assets oficiais locais de `swagger-ui-dist`. Evita-se um servidor genérico de arquivos para a documentação.
-- `@fastify/cookie` e `light-my-request` têm versões específicas compatíveis com Node 20. O lockfile deve ser respeitado.
-
-## Instalar e executar
-
-Pré-requisitos: Node 20 (`nvm use`), npm e Docker com Compose v2. As portas padrão são PostgreSQL 5432, API 3333 e web 5173.
+Pré-requisitos: Node **20.20.0**, npm e Docker Compose v2. Na raiz:
 
 ```sh
 npm run setup
 npm run dev
 ```
 
-`setup` instala com `npm ci` quando existe lockfile, cria `.env` local com chave JWT aleatória se ele ainda não existir, inicia o PostgreSQL, gera o cliente Prisma, aplica as migrações e carrega a demonstração. Não substitui um `.env` existente. Em ambientes com saída restrita, permitir `registry.npmjs.org`, `binaries.prisma.sh` e os domínios do registro de imagens Docker usados pelo ambiente.
+`setup` usa `npm ci`, cria `.env` com JWT aleatório somente se não existir, inicia PostgreSQL 16, gera o cliente, aplica migrações e carrega a demonstração. Preserva dados existentes. Web na porta 5173, API na 3333, banco local na 5432. O Vite encaminha `/api` e `/docs`; `/api/health` verifica uma consulta real no banco. Swagger disponível em `/docs`.
 
-Acesse a web pela porta 5173. A documentação fica em `/docs` e o OpenAPI em `/docs/json`; o Vite encaminha essas rotas e `/api` para a API. O endpoint `/api/health` verifica uma consulta real no banco e só responde `ok` se ela funcionar.
+Para PostgreSQL externo, configure `DATABASE_URL` e `JWT_SECRET` e execute `SKIP_DOCKER=1 npm run setup`. Variáveis do processo prevalecem sobre `.env`. Não usar seed/reset em dados reais. O banco local é exposto somente em loopback e usa credenciais exclusivas de desenvolvimento.
 
-Para banco já existente, sem Docker:
+### Demonstração
 
-```sh
-cp .env.example .env
-# Configure DATABASE_URL e gere JWT_SECRET, sem usar o texto de exemplo.
-# Exemplo de geração de chave: node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
-SKIP_DOCKER=1 npm run setup
-```
+Todos os acessos usam a senha **agro123**:
 
-Variáveis podem ser fornecidas pelo processo, com precedência sobre `.env`. O PostgreSQL do Compose fica exposto apenas em loopback, com credenciais **locais de desenvolvimento**, sem uso em produção. `docker compose down` preserva o volume; não use `down -v` se quiser preservar os dados.
+| Papel        | E-mail                                                                         |
+| ------------ | ------------------------------------------------------------------------------ |
+| Gestor       | dono@agrocerta.com                                                             |
+| Produção     | producao@agrocerta.com                                                         |
+| Comercial    | comercial@agrocerta.com                                                        |
+| Entregadores | entregador@agrocerta.com, entregador2@agrocerta.com, entregador3@agrocerta.com |
 
-## Acessos de demonstração
+Para abrir diretamente o painel local, configure `LOCAL_DEMO_ACCESS=1` em `.env`. Esse modo cria uma sessão real e auditada de gestor; só é aceito em `NODE_ENV=development`, API em loopback e origem web local. A rota `/login` continua disponível para testar outros papéis. Em produção o modo demo é recusado. O padrão do arquivo de exemplo é `0`.
 
-Todos usam a senha `agro123`. Os botões na tela de login apenas preenchem os campos; é preciso enviar o formulário para autenticar no backend.
+O seed inclui seis usuários, dez produtores, onze produtos com receitas, 25 insumos, 900 recebimentos de leite, 120 lotes, 35 clientes, 600 pedidos, oito recorrências, três rotas/veículos e históricos financeiros. As datas acompanham a data local da primeira carga. Se já existe empresa, o seed preserva os dados. Os testes de navegador acrescentam operações identificadas à demonstração.
 
-| Papel                | E-mail                    |
-| -------------------- | ------------------------- |
-| Dono / Gestor        | dono@agrocerta.com        |
-| Produção             | producao@agrocerta.com    |
-| Comercial            | comercial@agrocerta.com   |
-| Entregador principal | entregador@agrocerta.com  |
-| Segundo entregador   | entregador2@agrocerta.com |
-| Terceiro entregador  | entregador3@agrocerta.com |
+## Operações implementadas
 
-São seis contas para conciliar os quatro papéis com os três entregadores solicitados. O seed é exclusivo de desenvolvimento/teste e recusa `NODE_ENV=production`. Não publicar esses acessos em uma instalação real.
+- **Produtores e leite:** cadastro/edição/inativação, qualidade configurável, aprovação, preço histórico, contas a pagar, histórico e extrato PDF. Recebimentos consumidos ou pagos têm alterações protegidas.
+- **Produtos e produção:** receitas editáveis, seleção de origens aprovadas, consumo de leite e lotes de insumos, custo decimal, rateio mensal por kg equivalente, rendimento, lote, validade e maturação/liberação/bloqueio.
+- **Rastreabilidade:** origem do leite e insumos, produção, movimentos, pedidos/clientes afetados, filtros, QR, etiqueta e relatório PDF. Página pública limitada aos dados de origem. Recall bloqueia o lote e prepara comunicação, sem enviar mensagens automaticamente.
+- **Estoque:** saldo físico, reservado e disponível, PVPS, compras, inventário com motivo, perdas e alertas. Produção, reserva, cancelamento e entrega movimentam saldos em transações.
+- **Comercial:** clientes, preços próprios, limite de crédito, pedidos com múltiplos itens, alocação real de lotes, edição, confirmação, separação, cancelamento e histórico. Recorrências com dias da semana, pausa, exceções e geração idempotente para sete dias.
+- **Entregas:** rota, veículo, capacidade, motorista, ocorrência, confirmação com nome do recebedor, romaneio e comprovante PDF. Motorista acessa apenas entregas próprias do dia.
+- **Financeiro:** pagar/receber, baixas parciais/totais com histórico, custos fixos, custo por lote, simulador, caixa e DRE gerencial. O cadastro de custo fixo rateia produção; não cria uma conta a pagar automaticamente.
+- **WhatsApp:** caixa demonstrativa persistida, interpretação simples de itens, proposta de pedido com confirmação, modelos editáveis e links `wa.me`. Webhook oficial preparado com desafio, assinatura HMAC, identificação do número e deduplicação; integração externa não ativada.
+- **Gestão:** mural editável, dashboard com dados reais e períodos, alertas, relatórios filtrados com paginação, CSV/PDF, parâmetros de empresa/qualidade e rotas/veículos. Layout responsivo, tema, busca e notificações.
 
-## O que foi escrito nesta etapa
+As mutações operacionais usam `Idempotency-Key` UUID, auditoria e transação com bloqueio para evitar disputa por saldo. Reutilizar chave com conteúdo diferente retorna conflito. Autorização é validada no servidor: gestor administra; produção acessa origem/produção/estoque; comercial acessa clientes/pedidos/WhatsApp/recorrências; motorista acessa suas entregas. Dados financeiros e custos têm restrições próprias.
 
-### Banco e demonstração
+## Stack e banco
 
-38 modelos relacionais, migração SQL versionada, chaves estrangeiras, índices de pesquisa, exclusão lógica nos cadastros centrais e restrições locais de integridade: saldos não negativos, reserva menor ou igual ao saldo, recebimentos positivos, um único alvo por movimentação e pagamentos dentro do valor da conta.
+Monorepo npm: `/apps/web` (React 18, Vite, TypeScript, Tailwind, Radix, TanStack Query, Recharts) e `/apps/api` (Node 20, Fastify 5, Prisma 6.19.2, PostgreSQL 16, Zod). Fontes e assets do Swagger são locais. Quarenta modelos relacionais, chaves estrangeiras, índices e restrições SQL preservam saldos, reservas e pagamentos.
 
-O seed usa gerador pseudoaleatório determinístico e uma âncora na data local da execução. Prepara 90 dias, 900 recebimentos, dez produtores mineiros, onze produtos, receitas por produto, 25 insumos com compras, 120 lotes, 35 clientes, oito recorrências, 600 pedidos, três rotas, três veículos e três entregadores. Há origens de leite e insumos, movimentos, perdas, entregas, recebíveis, pagamentos, contas a pagar, custos fixos, mensagens, modelos, avisos e notificações.
+O runtime usa o **compilador WASM oficial do Prisma** (`engineType="client"`) e `@prisma/adapter-pg`. A geração usa os pacotes npm oficiais versionados, sem binários nativos baixados de `binaries.prisma.sh`. Esse domínio foi bloqueado pelo proxy durante a preparação; a execução atual não depende dele. TLS e checksums não foram desativados.
 
-O código concilia a saída de produtos entregues com movimentos de estoque, reservas com pedidos pendentes e recebíveis com pedidos entregues. Recebimentos reprovados não são alocados à produção. Os preços e custos ficam registrados nas operações históricas. A execução e a conciliação completa do seed **ainda precisam passar pelos testes de integração**.
+`npm run db:migrate` usa **o executor SQL do projeto**, não o comando nativo `prisma migrate deploy`: aplica as migrações versionadas, em transação e com lock, registra SHA-256 em `_agro_migrations` e rejeita alteração de migração já aplicada. Após mudar o schema, criar uma nova migração SQL revisada (incluindo constraints), gerar o cliente e testar em banco separado. Não executar comandos nativos de migração sobre esse histórico como se o ledger fosse `_prisma_migrations`.
 
-O seed inteiro usa uma transação. Se já existir uma empresa, ele preserva os dados e informa que não os alterou. Para recriar a demonstração deliberadamente:
+Custos usam Decimal e kg equivalentes (`kgPerUnit` para produtos líquidos); leite e insumos têm custos históricos registrados. O rateio recalcula os lotes do mês quando produção/custos fixos mudam. Ainda não há fechamento contábil imutável. DRE é gerencial, pelo faturamento entregue e custo proporcional, com perdas e variação de inventário; caixa usa baixas reais. Relatório de estoque mostra a posição atual, sem reconstrução de posição passada.
 
-```sh
-npm run seed
-npm run reset -- --yes
-```
-
-`reset` é destrutivo para o banco configurado. Sem `--yes` não executa; em produção é recusado. Não apontar esses comandos para dados reais.
-
-### Autenticação e permissões
-
-- Hash bcrypt com custo 12. A senha de demonstração é uma exceção conhecida; novos usuários precisam de pelo menos dez caracteres e no máximo 72 bytes.
-- Access JWT de 15 minutos em cookie `httpOnly`; refresh opaco de sete dias, com hash SHA-256 no banco e rotação transacional de uso único.
-- `SameSite=Strict`; cookies `Secure` em produção. Tokens não são armazenados em localStorage nem retornados em JSON.
-- A sessão e a situação do usuário são consultadas no servidor a cada acesso protegido. Logout revoga a sessão; mudanças no papel ou desativação não dependem do vencimento do JWT.
-- Verificação exata de `Origin` nas mutações, CORS restrito e limite de dez tentativas por minuto no login.
-- Erros padronizados, limite de corpo e entradas validadas com Zod/JSON Schema. Operações de login e criação de usuário geram auditoria.
-- O frontend usa as permissões retornadas pelo backend. Esconder o menu não substitui a autorização das rotas.
-
-| Área implementada                                  | Dono                | Produção         | Comercial              | Entregador               |
-| -------------------------------------------------- | ------------------- | ---------------- | ---------------------- | ------------------------ |
-| Painel                                             | Sim, com financeiro | Sem financeiro   | Indicadores comerciais | Não                      |
-| Produtores, recebimentos, produtos, lotes, insumos | Sim                 | Consulta         | Não                    | Não                      |
-| Clientes e pedidos                                 | Sim                 | Não              | Consulta               | Não                      |
-| Entregas                                           | Consulta            | Não              | Consulta               | Apenas próprias, de hoje |
-| Contas a receber                                   | Consulta            | Não              | Não                    | Não                      |
-| Mural                                              | Consulta            | Resumo no painel | Consulta               | Não                      |
-| Usuários                                           | Lista e criação     | Não              | Não                    | Não                      |
-
-A matriz completa de permissões dos módulos futuros está na especificação e será aplicada quando as respectivas operações forem implementadas.
-
-### Interface inicial
-
-Login com identidade verde/creme e ilustração própria, logo folha/gota, favicon, sidebar recolhível, navegação móvel, menu da conta e saída real, tema persistido, tour de quatro passos e notificações por usuário com marcação de leitura.
-
-O painel consulta a API: volumes aprovados, produção em kg, faturamento entregue, margem, custos médios, pedidos e entregas no período, série diária, distribuição de produção, lotes próximos do vencimento e recados. Há hoje, sete dias, 30 dias, mês e intervalo personalizado. Os indicadores financeiros ficam restritos ao gestor. Comparações usam o período anterior de igual duração; base anterior zero é mostrada sem percentual, evitando variações inventadas.
-
-As consultas têm busca, paginação e ordenação no servidor, exportação CSV dos resultados filtrados e apresentação em cards no celular. A exportação protege células que poderiam ser interpretadas como fórmulas de planilha. A busca global consulta somente recursos autorizados. O gestor pode criar usuários por um formulário ligado à API e com auditoria.
-
-**Os módulos operacionais estão em modo de consulta nesta etapa.** Não há botões fictícios de cadastro, entrega, recall ou produção. CRUD operacional, movimentações por ações do usuário e os demais fluxos continuam no roadmap. O painel autenticado e o layout interno ainda não foram verificados com dados reais neste ambiente.
-
-## Estrutura
-
-```text
-apps/
-  api/
-    prisma/             schema, migração e seed
-    src/                API, autenticação, autorização, consultas e cálculos
-    test/               unidades, API pública e integração PostgreSQL
-  web/
-    src/components/ui/  componentes base no padrão shadcn/ui
-    src/lib/            cliente HTTP, sessão e apresentação
-    src/                login, layout, painel e consultas
-scripts/                instalação, Prisma e reset
- tests/e2e/             testes Chromium em três tamanhos de tela
- docs/                  especificação original, roadmap e validação
-```
-
-## Comandos
-
-| Comando                                   | Finalidade                                       |
-| ----------------------------------------- | ------------------------------------------------ |
-| `npm run setup`                           | Instalar, iniciar banco, gerar, migrar e popular |
-| `npm run dev`                             | API + web, encerradas em conjunto                |
-| `npm run db:up` / `npm run db:down`       | Subir/parar o banco local                        |
-| `npm run db:generate`                     | Gerar cliente Prisma                             |
-| `npm run db:migrate`                      | Aplicar migrações versionadas                    |
-| `npm run seed`                            | Carregar demonstração sem sobrescrever dados     |
-| `npm run reset -- --yes`                  | Apagar/recriar o banco configurado               |
-| `npm run typecheck`                       | Verificar os dois projetos em modo estrito       |
-| `npm run lint`                            | ESLint                                           |
-| `npm run format` / `npm run format:check` | Formatar/conferir estilo                         |
-| `npm test`                                | Unidades, API pública e integração real          |
-| `npm run test:unit`                       | Somente cálculos, datas e matriz de permissões   |
-| `npm run test:public`                     | Proteções públicas sem consultar o banco         |
-| `npm run test:e2e`                        | Fluxos reais no navegador; exige seed concluído  |
-| `npm run build`                           | Compilar API e gerar bundle web                  |
-
-Para testes de navegador, instale o Chromium do Playwright com `npx playwright install chromium`, ou configure `CHROMIUM_PATH` para um Chromium instalado. Exemplo neste ambiente: `CHROMIUM_PATH=/usr/bin/chromium npm run test:e2e`. `--no-sandbox` é usado somente quando esse caminho explícito está definido, para o container de testes.
-
-Os testes de integração criam um schema PostgreSQL exclusivo, aplicam a migração, executam o seed e removem apenas esse schema ao final. A conexão precisa poder criar schemas. `TEST_DATABASE_URL` permite usar um banco de testes separado. Os testes de navegador usam o banco de desenvolvimento e criam contas identificadas com prefixo `browser-`; rode-os somente em uma demonstração descartável.
-
-## Regras de cálculo
-
-```text
-leite       = soma(litros da origem × preço histórico por litro)
-insumos     = soma(quantidade consumida × custo histórico unitário)
-indiretos   = fixos do mês × peso do lote / peso produzido no mês
-custo total = leite + insumos + indiretos + perdas de produção
-custo/un    = custo total / quantidade produzida
-custo/L     = custo total / litros processados
-margem      = (preço médio de venda - custo/un) / preço médio de venda
-```
-
-O rateio usa kg equivalentes: produtos em kg têm fator 1; os dois produtos líquidos da demonstração usam `kgPerUnit=1,03`. Esse fator é explícito no produto para não somar litros e kg sem conversão. Custos indiretos de lotes novos exigirão recalcular/fechar o rateio mensal no futuro fluxo de produção. Os exemplos do seed já conhecem a produção total do mês. `monthlyProduction` no cálculo significa o peso mensal equivalente em kg; `allocationWeightKg` informa o peso do lote e, se omitido, equivale à quantidade em kg.
-
-A margem do painel usa faturamento entregue menos custo histórico proporcional das unidades vendidas. É margem bruta; não é lucro líquido/DRE. Quebras posteriores à produção são perdas de estoque em registros próprios, sem duplicação no custo original do lote. Arredondamento ocorre na apresentação/persistência monetária, com cálculos intermediários decimais. Preço zero gera margem indefinida (`null`), não divisão por zero.
-
-## PostgreSQL / Supabase
-
-O provider já é PostgreSQL. Para Supabase ou outro servidor, configurar `DATABASE_URL` com a string fornecida pelo serviço, incluindo SSL verificado. Aplicar `npm run db:generate && npm run db:migrate`. Use conexão direta ou pool em modo sessão para migrações; conexão com pool transacional precisa de configuração específica antes do uso. Nunca usar o seed/reset sobre dados reais. Se o usuário do banco de produção não pode criar schemas, fornecer um banco de testes separado.
-
-Migrações locais de desenvolvimento após alterar o schema:
+## Scripts e verificações
 
 ```sh
-node scripts/prisma.mjs migrate dev --name nome_da_mudanca
+npm run db:up             # iniciar banco
+npm run db:generate       # gerar cliente Prisma WASM
+npm run db:migrate        # aplicar SQL versionado
+npm run seed             # carregar somente se não há empresa
+npm run typecheck
+npm run lint
+npm run format:check
+npm test                 # testes unitários e PostgreSQL real
+npm run build
+CHROMIUM_PATH=/usr/bin/chromium npm run test:e2e
 ```
 
-As restrições SQL adicionais de saldo e integridade estão na migração e devem ser preservadas nas próximas migrações.
+Os testes de API criam schemas isolados e removem somente seus próprios dados; `TEST_DATABASE_URL` pode apontar para banco separado. O usuário precisa poder criar schemas. Playwright usa a demonstração, cria operações reais e inicia API/web quando necessário. Pode usar Chromium instalado via `npx playwright install chromium` ou `CHROMIUM_PATH`.
 
-## Produção e integrações futuras
+`npm run reset -- --yes` **apaga o schema configurado** e recria a demonstração. Exige confirmação explícita na linha de comando e recusa produção. `docker compose down` preserva o volume; não usar `down -v` para parar o ambiente habitual.
 
-Esta etapa não está homologada para produção. O build web fica em `apps/web/dist`; a API compilada inicia com `npm start -w @agrocerta/api`. Uma implantação futura pode hospedar o frontend em Vercel/Netlify e a API em Railway/Render, mas precisa de proxy de mesma origem para `/api`, HTTPS, `NODE_ENV=production`, `WEB_ORIGIN` exato, segredo JWT próprio, PostgreSQL persistente, política de backup e provisionamento seguro do primeiro gestor sem contas demo. Cookies `SameSite=Strict` exigem validar cuidadosamente qualquer arranjo entre sites diferentes. O proxy de desenvolvimento do Vite não é configuração de produção.
+Autenticação usa bcrypt, cookies httpOnly, JWT curto, refresh opaco com hash e rotação, verificação de Origin, limitação de tentativas e sessões consultadas no servidor. Segredos não vão para o frontend. `.env` é ignorado pelo Git.
 
-WhatsApp Cloud API, webhook, verificação de assinatura, jobs, armazenamento de comprovantes, PDFs, backup/exportação e monitoramento ainda **não estão implementados**. Não há variáveis nem instruções de integração alegadamente funcionais nesta etapa. Serão introduzidas com seus módulos, preservando a especificação original.
+## Integrações e publicação
 
-## Evidências e próxima tarefa
+O webhook oficial requer `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN` e `WHATSAPP_PHONE_NUMBER_ID`, sem valores versionados. GET/POST `/api/integrations/whatsapp/webhook` valida desafio/assinatura e aceita mensagens de remetente cadastrado sem ambiguidade. Não foi feita homologação com a Meta nem implementado envio automático; o modo demo não envia mensagens.
 
-Veja [validação desta etapa](docs/VALIDACAO.md) para distinguir testes passados de verificações bloqueadas. A próxima ação é liberar o domínio do Prisma e concluir setup, seed e testes de integração/navegador. Depois disso, implementar CRUD de produtores e recebimento de leite, seguido de produtos/receitas e do fluxo transacional de produção.
+O cron prepara recorrências às 05h em `America/Sao_Paulo` e verifica vencimentos de hora em hora. A função de geração foi testada manualmente e por integração; não se observou um ciclo real agendado às 05h nesta sessão. Jobs exigem processo API persistente, não apenas frontend estático.
+
+Para Vercel: build web `npm run build -w @agrocerta/web`, saída `apps/web/dist`, fallback de SPA e proxy de mesma origem `/api` e `/docs` para API persistente de homologação. API: `npm start -w @agrocerta/api`, PostgreSQL persistente, `NODE_ENV=production`, `LOCAL_DEMO_ACCESS=0`, `API_HOST` adequado ao host, `WEB_ORIGIN` HTTPS exato, JWT próprio e cookies Secure. Não transportar contas demo para produção. O proxy de desenvolvimento não configura a hospedagem.
+
+**Nenhuma URL pública foi publicada nesta tarefa:** não havia projeto/credenciais Vercel nem API de homologação configurados. Build local e testes não equivalem a implantação. Veja [evidências de validação](docs/VALIDACAO.md) e [próximas entregas](docs/ROADMAP.md).

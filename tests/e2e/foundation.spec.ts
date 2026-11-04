@@ -25,6 +25,8 @@ test('login, painel, filtros, tema, consultas, CSV, busca e logout', async ({ pa
   await expect(page.locator('html')).toHaveClass('dark');
   await page.reload();
   await expect(page.locator('html')).toHaveClass('dark');
+  await expect(page.getByRole('heading', { name: /Bom dia|Boa tarde|Boa noite/ })).toBeVisible();
+  await expect(page.getByText('Leite recebido', { exact: true }).first()).toBeVisible();
   await page.screenshot({
     path: `test-results/dashboard-${testInfo.project.name}.png`,
     fullPage: true,
@@ -32,13 +34,17 @@ test('login, painel, filtros, tema, consultas, CSV, busca e logout', async ({ pa
   await page.goto('/producers');
   await expect(page.getByRole('heading', { name: 'Produtores', exact: true })).toBeVisible();
   await page.getByRole('textbox', { name: 'Buscar registros' }).fill('Maria');
-  await expect(page.getByText('Maria Ferreira', { exact: true }).first()).toBeVisible();
+  await expect(
+    page.getByText('Maria Ferreira', { exact: true }).filter({ visible: true }).first(),
+  ).toBeVisible();
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Exportar CSV' }).click();
   expect((await download).suggestedFilename()).toBe('agro-certa-producers.csv');
   await page.getByRole('button', { name: 'Buscar no sistema' }).click();
   await page.getByRole('textbox', { name: 'Busca global' }).fill('Canastra');
-  await expect(page.getByRole('button', { name: /Queijo da Canastra/ }).first()).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: /Queijo do Serro \/ Canastra/ }).first(),
+  ).toBeVisible();
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Menu da conta' }).click();
   await page.getByRole('menuitem', { name: 'Sair da conta' }).click();

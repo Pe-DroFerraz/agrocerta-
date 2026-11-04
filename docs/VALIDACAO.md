@@ -1,47 +1,43 @@
-# Validação da primeira etapa
+# Validação da etapa operacional
 
-Verificações realizadas em 04/11/2026, Node 20.20.0, PostgreSQL 16.8 em Docker e Chromium do ambiente.
+Execução em 4 de novembro de 2026, Node 20.20.0, PostgreSQL 16 real via Docker, Chromium instalado no ambiente. Não foram usados repositórios de dados simulados nos testes de integração.
 
-## Resultados observados
+## Evidências
 
-| Verificação                                                            | Resultado                                                                                                        |
-| ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Dependências com lockfile (`npm ci`, chamado por setup)                | Instaladas, com Node 20 e sem desativar TLS                                                                      |
-| PostgreSQL local                                                       | Container saudável; banco `agrocerta` criado                                                                     |
-| Schema Prisma                                                          | 38 modelos validados pela implementação WASM oficial                                                             |
-| Migração SQL                                                           | 38 tabelas, índices, FKs e checks criados em schema temporário PostgreSQL; transação revertida                   |
-| Tipos Prisma                                                           | Gerados offline pelo gerador oficial, sem engine nativo, apenas para conferir código                             |
-| `npm run typecheck`                                                    | API e web passaram                                                                                               |
-| `npm run lint`                                                         | Passou                                                                                                           |
-| `npm run build`                                                        | API e web passaram; houve avisos de comentários PURE de Zod, sem falha de compilação                             |
-| Cálculos, rendimento, datas e matriz de permissões                     | 12 testes passaram                                                                                               |
-| API pública                                                            | 5 testes passaram: anônimo/JWT adulterado, origem, rate limit, Swagger e 404                                     |
-| Login público em Chromium                                              | 3 testes passaram: 360×800, 768×1024 e 1440×1000; validação, mostrar/ocultar senha e sem overflow horizontal     |
-| Auditoria de dependências de execução                                  | Zero vulnerabilidades conhecidas no resultado observado de `npm audit --omit=dev`                                |
-| `npm test` completo                                                    | Código de saída 1: 17 testes passaram; suíte integrada falhou no bootstrap e suas 13 verificações não executaram |
-| `npm run setup` completo                                               | Instalou dependências e confirmou PostgreSQL; parou em `db:generate` com HTTP 403 no proxy                       |
-| Seed e migrações pelo Prisma                                           | Não concluídos                                                                                                   |
-| Login por senha, refresh, logout autenticado e RBAC com usuários reais | Código e testes escritos; execução integrada pendente                                                            |
-| Dashboard, consultas, exportação e criação de usuários autenticados    | Código e testes escritos; execução integrada pendente                                                            |
-| Telas internas nos três tamanhos e modo escuro                         | Não homologadas; build não comprova comportamento                                                                |
-| CI do GitHub                                                           | Workflow escrito; não executado no GitHub e não publicado por esta tarefa                                        |
+- `npm run setup`: instalação, geração WASM, migrações e seed concluídos. Repetição reconheceu as migrações e informou que a demonstração existente foi preservada. Não foi executado reset do banco de desenvolvimento.
+- `npm run typecheck`, `npm run lint` e `npm run build`: passaram para API e web.
+- `npm test`: **46 testes passaram em sete arquivos**, sem testes ignorados. Cada suíte integrada usa schema PostgreSQL próprio e remove apenas seu schema.
+- Fluxo integrado obrigatório: produtor → recebimento aprovado de **500 L** → produção de **50 kg** → reserva e entrega de **8 kg** → saldo físico **42 kg** → recebível e baixa parcial/total. Asserções verificam origens, insumos, custos, indicadores, histórico e rastreabilidade.
+- Consistência: concorrência por estoque, resposta repetida com a mesma chave, conflito de chave com outro corpo, rollback por falta de leite/insumos, reserva por validade antes da fabricação, divisão entre lotes, cancelamento com liberação e bloqueio impedindo expedição.
+- Financeiro: baixas reais, saldo de caixa, rateio, simulador sem mutação, perdas e ajuste de inventário no resultado. Relatórios filtrados, agregados, CSV protegido contra fórmula e PDFs verificados.
+- Complementos: recorrência sem duplicação, pausa/exceção/edição; WhatsApp demo com preços do cliente; modelos sem variáveis inválidas; webhook com desafio, HMAC, número e deduplicação; mural, parâmetros e comprovantes.
+- Proteções: login e sessão reais, rotação e revogação, RBAC, isolamento de motorista, dados públicos limitados, erros de validação e recusa do modo demo em produção/bind público/origem externa.
 
-Os testes públicos usam a aplicação real, sem respostas HTTP simuladas. Eles **não demonstram** autenticação por senha nem conexão Prisma ao PostgreSQL. O teste SQL usa o PostgreSQL real, mas **não substitui** `prisma migrate deploy` nem o seed. As verificações da suíte integrada marcadas como skipped são consequência da falha do `beforeAll`, não sucessos nem dispensas dos requisitos.
+- `CHROMIUM_PATH=/usr/bin/chromium npm run test:e2e`: **14 cenários passaram, sete foram dispensados deliberadamente e nenhum falhou**, em 21 combinações de cenário/resolução. Os sete dispensados evitam repetir fluxos completos já exercitados em desktop; navegação e login/painel passaram nas três resoluções. A matriz de permissões no navegador passou em desktop e celular.
+- `npm run format:check`: passou.
+- `npm audit --omit=dev`: **zero vulnerabilidades conhecidas** na verificação final. O lockfile fixa `effect` 3.20.0 e `deepmerge-ts` 8.0.2 para corrigir os avisos transitivos encontrados; geração do cliente, build e todas as suítes passaram depois da instalação limpa.
+- Inspeção visual dos screenshots reais do dashboard, rastreabilidade/recall e recorrências no celular. Foi corrigida a largura mínima dos cards de recorrência e estabilizada a seleção dos cards visíveis nos testes responsivos.
 
-## Bloqueio externo
+## Limites da validação
 
-O proxy nega a conexão HTTPS a `binaries.prisma.sh`. Foram observados HTTP 403 tanto em consulta direta pelo proxy quanto nos comandos de geração/migração. A política vigente ainda não contém o domínio; a adição foi salva no rascunho das configurações. Nenhum checksum foi ignorado, nenhum engine não verificado foi usado e nenhuma rota alternativa foi usada para contornar a política.
+- Os cenários operacionais completos são executados em desktop; navegação dos módulos e login/painel são conferidos também em tablet e celular. Isso não cobre cada formulário em cada combinação de resolução e papel.
+- PDFs são gerados e conferidos como downloads/documentos válidos. Não houve homologação de impressão física ou leitura de QR por câmera externa.
+- Webhook Meta foi exercitado com requisições assinadas em testes. Não houve comunicação com conta oficial, envio automático ou confirmação externa de mensagens.
+- A geração de recorrências foi testada por chamada real da função/endpoint; não se aguardou o cron das 05h. O mesmo vale para a observação do disparo horário de vencimentos.
+- Não há implantação pública Vercel/API de homologação nem execução observada do GitHub Actions nesta sessão. Testes locais não comprovam esses ambientes.
+- Avisos não fatais de dependências: Rollup remove comentários de anotação de Zod; pg 8 avisa sobre enfileiramento de consultas transacionais. pg está na versão 8 compatível; a migração para pg 9 exige revisão. Há avisos de descontinuação em bibliotecas transitivas e ferramentas; não foram ocultados.
+- Devolução parcial/estorno, foto/assinatura desenhada, kanban, fechamento mensal imutável e backup/restauração permanecem pendentes. Veja ROADMAP.md. Não declarar todos os critérios da especificação original concluídos.
 
-O checkout contém os arquivos e a migração; o banco persistente **ainda não recebeu a demonstração**. A geração offline local serviu para TypeScript/build e não torna a API de dados funcional.
+## Reproduzir
 
-## Retomar quando a rede for liberada
+```sh
+npm run setup
+npm run format:check
+npm run typecheck
+npm run lint
+npm test
+npm run build
+CHROMIUM_PATH=/usr/bin/chromium npm run test:e2e
+```
 
-1. Ativar Node 20. No ambiente preparado, o executável está em `/workspace/.agro-tools/node_modules/node/bin`; numa máquina local, `nvm use`.
-2. Salvar a liberação de `binaries.prisma.sh` nas configurações do ambiente e confirmar a propagação; não substituir a lista de destinos existentes.
-3. Na raiz do repositório, executar `npm run setup`. Deve gerar o cliente com o engine nativo verificado, aplicar a migração e carregar os dados.
-4. Executar `npm test` e investigar/corrigir qualquer falha; os testes de integração devem efetivamente executar, incluindo conciliação de estoque, origens e recebíveis.
-5. Executar `npm run typecheck && npm run lint && npm run build`.
-6. Executar `CHROMIUM_PATH=/usr/bin/chromium npm run test:e2e` neste ambiente. A suíte inicia a aplicação se necessário. As verificações autenticadas cobrem filtros, tema, busca, consultas, CSV, saída, restrições por papel e criação/login de novo usuário. Algumas combinações redundantes de viewport são explicitamente dispensadas nos testes, mantendo login/painel em todas as três larguras.
-7. Verificar manualmente as telas internas e atualizar este documento com resultados reais.
-
-Somente depois disso considerar a fundação homologada e avançar ao CRUD de produtores/recebimentos. Publicação do ambiente, execução em tarefa nova e implantação da aplicação não foram realizadas nem validadas.
+Os testes de navegador modificam a demonstração com registros identificados. Executar somente em dados de desenvolvimento. `TEST_DATABASE_URL` separa o banco dos testes de API; o navegador usa a configuração normal da API de desenvolvimento.

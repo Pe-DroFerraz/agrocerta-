@@ -8,7 +8,7 @@ beforeAll(async () => {
   await app.ready();
 });
 afterAll(async () => {
-  await app.close();
+  if (app) await app.close();
   await db.$disconnect();
 });
 it('nega acesso anônimo e JWT adulterado antes de consultar dados', async () => {
