@@ -1,11 +1,17 @@
-import { config } from 'dotenv';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-config({ path: fileURLToPath(new URL('../.env', import.meta.url)) });
-if (process.argv.includes('reset') && process.env.NODE_ENV === 'production')
-  throw new Error('Reset proibido em produção.');
-execFileSync('npx', ['--no-install', 'prisma', ...process.argv.slice(2)], {
+const args = process.argv.slice(2);
+const command =
+  args[0] === 'generate'
+    ? 'generate-client.mjs'
+    : args[0] === 'migrate' && args[1] === 'deploy'
+      ? 'migrate.mjs'
+      : null;
+if (!command)
+  throw new Error(
+    'Use generate ou migrate deploy. As migrações SQL deste projeto são aplicadas pelo runner PostgreSQL com checksum.',
+  );
+execFileSync(process.execPath, [fileURLToPath(new URL(command, import.meta.url))], {
   stdio: 'inherit',
-  cwd: fileURLToPath(new URL('../apps/api', import.meta.url)),
   env: process.env,
 });

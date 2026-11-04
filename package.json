@@ -38,6 +38,8 @@
     "prettier": "^3.5.3"
   },
   "overrides": {
-    "light-my-request": "6.6.0"
+    "light-my-request": "6.6.0",
+    "deepmerge-ts": "8.0.2",
+    "effect": "3.20.0"
   }
 }

@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  engineType = "client"
 }
 
 datasource db {
@@ -151,7 +152,7 @@ model Supply {
   name         String
   unit         String
   unitCost     Decimal               @db.Decimal(12, 4)
-  stock        Decimal               @db.Decimal(14, 3)
+  stock        Decimal               @db.Decimal(14, 5)
   minimumStock Decimal               @db.Decimal(12, 3)
   deletedAt    DateTime?
   recipes      RecipeItem[]
@@ -457,6 +458,7 @@ model ReceivablePayment {
 }
 
 model Payable {
+  payments PayablePayment[]
   id          String   @id @default(cuid())
   description String
   category    String
@@ -550,4 +552,22 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   @@index([entity, createdAt])
+}
+
+model OperationRequest {
+  id String @id
+  actorId String
+  route String
+  requestHash String
+  result Json
+  createdAt DateTime @default(now())
+}
+model PayablePayment {
+  id String @id @default(cuid())
+  payableId String
+  payable Payable @relation(fields:[payableId],references:[id],onDelete:Restrict)
+  amount Decimal @db.Decimal(14,2)
+  date DateTime
+  method String
+  @@index([payableId,date])
 }

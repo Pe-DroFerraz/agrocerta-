@@ -1,15 +1,9 @@
 import '../src/config.js';
-import {
-  PrismaClient,
-  Prisma,
-  RoleKey,
-  BatchStatus,
-  OrderStatus,
-  MovementType,
-} from '@prisma/client';
+import { Prisma, RoleKey, BatchStatus, OrderStatus, MovementType } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import { createDb } from '../src/db.js';
 import { calculateCost } from '../src/calculations.js';
-const db = new PrismaClient();
+const db = createDb();
 const money = (v: number) => Number(v.toFixed(2));
 const decimal = (v: Prisma.Decimal.Value) => new Prisma.Decimal(v);
 const dateAt = (days: number) => {
@@ -419,7 +413,10 @@ async function seed() {
         });
       }
       await tx.supply.createMany({
-        data: supplies.map((s) => ({ ...s, stock: money(s.stock - (supplyUsed.get(s.id) ?? 0)) })),
+        data: supplies.map((s) => ({
+          ...s,
+          stock: Number((s.stock - (supplyUsed.get(s.id) ?? 0)).toFixed(5)),
+        })),
       });
       await tx.supplyPurchase.createMany({ data: purchases });
       await tx.recipeItem.createMany({ data: recipes });
@@ -620,18 +617,16 @@ async function seed() {
       await tx.receivable.createMany({ data: receivables });
       await tx.receivablePayment.createMany({ data: payments });
       await tx.payable.createMany({
-        data: producers.map((p) => ({
-          description: `Fechamento de leite — ${p.name}`,
-          category: 'MILK',
-          amount: money(
-            receipts
-              .filter((r) => r.producerId === p.id && r.approved)
-              .reduce((s, r) => s + Number(r.liters) * Number(r.pricePerLiter), 0),
-          ),
-          paidAmount: 0,
-          dueDate: dateAt(7),
-          reference: p.id,
-        })),
+        data: receipts
+          .filter((r) => r.approved)
+          .map((r) => ({
+            description: `Leite — ${producers.find((p) => p.id === r.producerId)!.name}`,
+            category: 'MILK',
+            amount: money(Number(r.liters) * Number(r.pricePerLiter)),
+            paidAmount: 0,
+            dueDate: new Date(+new Date(r.date) + 30 * 86400000),
+            reference: r.id,
+          })),
       });
       await tx.payable.createMany({
         data: purchases.map((p) => ({
@@ -641,6 +636,16 @@ async function seed() {
           paidAmount: money(Number(p.quantity) * Number(p.unitCost)),
           dueDate: p.date,
           reference: p.id,
+        })),
+      });
+      const paidPayables = await tx.payable.findMany({ where: { paidAmount: { gt: 0 } } });
+      await tx.payablePayment.createMany({
+        data: paidPayables.map((p) => ({
+          id: `seed-opening-${p.id}`,
+          payableId: p.id,
+          amount: p.paidAmount,
+          date: p.dueDate,
+          method: 'DEMO_OPENING',
         })),
       });
       await tx.announcement.createMany({
