@@ -1,0 +1,45 @@
+name: Verificar AGRO CERTA
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16.8-alpine
+        env:
+          POSTGRES_USER: agrocerta
+          POSTGRES_PASSWORD: ci_local_only
+          POSTGRES_DB: agrocerta
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U agrocerta -d agrocerta"
+          --health-interval 2s --health-timeout 5s --health-retries 30
+    env:
+      DATABASE_URL: postgresql://agrocerta:ci_local_only@localhost:5432/agrocerta?schema=public
+      JWT_SECRET: ci-only-test-key-never-use-in-production-1793808000
+      WEB_ORIGIN: http://localhost:5173
+      NODE_ENV: test
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run db:generate && npm run db:migrate && npm run seed
+      - run: npm run format:check && npm run lint && npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: navegador
+          path: test-results/
